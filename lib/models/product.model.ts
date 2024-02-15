@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 // Define the schema for the product model
 const priceSchema = new mongoose.Schema(
   {
-    url: { type: String, required: true, unique: true },
+    url: { type: String, required: true, unique: true, sparse: true },
     currency: { type: String, required: true },
     image: { type: String, required: true },
     title: { type: String, required: true },
@@ -23,7 +23,7 @@ const priceSchema = new mongoose.Schema(
     category: { type: String },
     reviewsCount: { type: Number },
     isOutOfStock: { type: Boolean, default: false },
-    users: [{ email: { type: String, required: true } }],
+    users: [{ email: { type: String, required: true, sparse: true } }],
     default: [],
   },
   { timestamps: true },

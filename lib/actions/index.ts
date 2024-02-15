@@ -11,26 +11,22 @@ export async function scrapeAandStoreProducts(productURL: string) {
   if (!productURL) return;
 
   try {
-    // connect to the database
     connectToDB();
 
-    const scrapedProduct: any = await scrapeAmazonProduct(productURL);
+    const scrapedProduct = await scrapeAmazonProduct(productURL);
 
     if (!scrapedProduct) return;
 
-    // store the new product
     let product = scrapedProduct;
 
     const existingProduct = await Product.findOne({ url: scrapedProduct.url });
 
     if (existingProduct) {
-      // Update the price history array (Obj) of the existing product
       const updatedPriceHistory: any = [
         ...existingProduct.priceHistory,
         { price: scrapedProduct.currentPrice },
       ];
 
-      // Update the product with the new price history
       product = {
         ...scrapedProduct,
         priceHistory: updatedPriceHistory,
@@ -40,18 +36,32 @@ export async function scrapeAandStoreProducts(productURL: string) {
       };
     }
 
-    console.log("Product: ", product);
+    //const newProduct = await Product.findOneAndUpdate(
+    //  { url: scrapedProduct.url },
+    //  product,
+    //  { upsert: true, new: true },
+    //);
+    //
 
-    // Save the product to the database
+    // if the product exists, update it
     const newProduct = await Product.findOneAndUpdate(
       { url: scrapedProduct.url },
       product,
       { upsert: true, new: true },
     );
 
-    revalidatePath(`/products/${newProduct._id}`); // will rerun the getServerSideProps function for the product page with the new data from the database and update the cache
+    revalidatePath(`/products/${newProduct._id}`);
   } catch (error: any) {
-    throw new Error(`Error scraping and storing products: ${error}`);
+    if (error.code === 11000) {
+      // Duplicate key error
+      console.error(
+        `Failed to create/update product: Duplicate key error, ${error.message}`,
+      );
+      // Handle the duplicate key error here
+    } else {
+      // Other errors
+      console.error(`Failed to create/update product: ${error.message}`);
+    }
   }
 }
 
@@ -83,6 +93,27 @@ export async function getAllProducts() {
     if (!products) return;
     // return the products if they exist
     return products;
+  } catch (error) {
+    console.error("Error getting all products: ", error);
+  }
+}
+
+export async function getSimilarProducts(productID: string) {
+  try {
+    // connect to the database
+    connectToDB();
+
+    // get the current product
+    const currentProduct = await Product.findById(productID);
+
+    if (!currentProduct) return null;
+
+    // get similar products
+    const similarProducts = await Product.find({
+      _id: { $ne: productID },
+    }).limit(3);
+
+    return similarProducts;
   } catch (error) {
     console.error("Error getting all products: ", error);
   }

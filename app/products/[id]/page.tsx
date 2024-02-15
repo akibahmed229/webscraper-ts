@@ -1,9 +1,11 @@
 import { Product } from "@/types";
-import { getProductByID } from "@/lib/actions";
+import { getProductByID, getSimilarProducts } from "@/lib/actions";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import React from "react";
 import Link from "next/link";
+import PriceInfoCard from "@/components/PriceInfoCard";
+import ProductCard from "@/components/ProductCard";
 
 type Props = {
   params: { id: string };
@@ -13,6 +15,9 @@ const ProductDetails = async ({ params: { id } }: Props) => {
   const product: Product = await getProductByID(id);
 
   if (!product) redirect("/");
+
+  // get similar products
+  const similarProducts = await getSimilarProducts(id);
 
   return (
     <div className="product-container">
@@ -78,7 +83,6 @@ const ProductDetails = async ({ params: { id } }: Props) => {
               </div>
             </div>
           </div>
-
           <div className="product-info">
             <div className="flex flex-col gap-2">
               <p className="text-[34px] text-secondary font-bold">
@@ -117,8 +121,77 @@ const ProductDetails = async ({ params: { id } }: Props) => {
               </p>
             </div>
           </div>
+          <div className="my-7 flex flex-col gap-5">
+            <div className="flex gap-5 flex-wrap">
+              <PriceInfoCard
+                title="Current Price"
+                iconSrc="/assets/icons/price-tag.svg"
+                value={`${product.currency} ${Number(product.currentPrice)}`}
+                borderColor="#b6dbff"
+              />
+              <PriceInfoCard
+                title="Average Price"
+                iconSrc="/assets/icons/chart.svg"
+                value={`${product.currency} ${Number(product.averagePrice.toFixed(2))}`}
+                borderColor="#b6dbff"
+              />
+              <PriceInfoCard
+                title="Highest Price"
+                iconSrc="/assets/icons/arrow-up.svg"
+                value={`${product.currency} ${Number(product.highestPrice)}`}
+                borderColor="#b6dbff"
+              />
+              <PriceInfoCard
+                title="Lowest Price"
+                iconSrc="/assets/icons/arrow-down.svg"
+                value={`${product.currency} ${Number(product.lowestPrice)}`}
+                borderColor="#b6dbff"
+              />
+            </div>
+          </div>
+          Modal
         </div>
       </div>
+
+      <div className="flex flex-col gap-16">
+        <div className="flex flex-col gap-5">
+          <h3 className="text-2xl font-semibold text-black">
+            Product Description
+          </h3>
+
+          <div className="flex flex-col gap-4">
+            {product.description?.split("\n").map((desc, index) => (
+              <p key={index} className="text-base text-black opacity-50">
+                {desc}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <button className="btn w-fit mx-auto flex items-center justify-center gap-3 min-w-[200px]">
+          <Image
+            src={"/assets/icons/bag.svg"}
+            alt="check"
+            width={22}
+            height={22}
+          />
+          <Link href={"/"} className="text-base text-white">
+            Buy Now
+          </Link>
+        </button>
+      </div>
+
+      {similarProducts && similarProducts?.length > 0 && (
+        <div className="py-14 flex flex-col gap-2 w-full">
+          <p className="section-text">Similar Products</p>
+
+          <div className="flex flex-wrap gap-8">
+            {similarProducts?.map((product, index) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
